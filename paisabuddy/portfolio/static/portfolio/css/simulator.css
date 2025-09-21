@@ -1,0 +1,109 @@
+/* Portfolio Simulator Styles */
+.stock-suggestions {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.stock-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.stock-suggestion:hover {
+    background-color: #f5f5f5;
+}
+
+.search-box {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.portfolio-table, .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.portfolio-table th, .portfolio-table td,
+.history-table th, .history-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.portfolio-table th, .history-table th {
+    font-weight: 600;
+    color: #666;
+}
+
+.profit {
+    color: #26a69a;
+    font-weight: bold;
+}
+
+.loss {
+    color: #ef5350;
+    font-weight: bold;
+}
+
+.buy-more-btn, .sell-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+.buy-more-btn {
+    background-color: #26a69a;
+    color: white;
+}
+
+.sell-btn {
+    background-color: #ef5350;
+    color: white;
+}
+
+#chart-container {
+    width: 100%;
+    height: 300px;
+    margin-bottom: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .project-box-wrapper {
+        width: 100%;
+    }
+    
+    .portfolio-table, .history-table {
+        font-size: 12px;
+    }
+    
+    .portfolio-table th, .portfolio-table td,
+    .history-table th, .history-table td {
+        padding: 8px 5px;
+    }
+    
+    .buy-more-btn, .sell-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+}

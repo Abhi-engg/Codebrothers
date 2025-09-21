@@ -1,146 +1,385 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio Simulator - PaisaBuddy</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lightweight-charts@4.0.1/dist/lightweight-charts.standalone.production.js"></script>
-    <style>
-        .stock-suggestion:hover {
-            background-color: #f3f4f6;
-        }
-    </style>
-</head>
-<body class="bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Portfolio Simulator</h1>
-        
-        <!-- Balance Display -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-semibold text-gray-700 mb-2">Your Balance</h2>
-            <p class="text-3xl font-bold text-green-600">₹<span id="balance">{{ portfolio.balance }}</span></p>
-        </div>
-        
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Stock Search and Buy/Sell Section -->
-            <div class="lg:col-span-1">
-                <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Stock Search</h2>
-                    <div class="relative mb-6">
-                        <input type="text" id="stock-search" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search for stocks (e.g., RELIANCE, TCS)">
-                        <div id="stock-suggestions" class="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-lg hidden"></div>
-                    </div>
-                    
-                    <div id="selected-stock-info" class="mb-6 hidden">
-                        <h3 class="text-lg font-medium text-gray-800" id="stock-name"></h3>
-                        <p class="text-2xl font-bold text-gray-900 mb-2">₹<span id="stock-price"></span></p>
-                        <p class="text-sm text-gray-500" id="stock-symbol"></p>
-                    </div>
-                    
-                    <div id="trade-form" class="hidden">
-                        <div class="mb-4">
-                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                            <input type="number" id="quantity" min="1" value="1" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
-                            <input type="number" id="price" step="0.01" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readonly>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Total Cost</label>
-                            <p class="text-xl font-bold">₹<span id="total-cost">0.00</span></p>
-                        </div>
-                        
-                        <div class="flex space-x-4">
-                            <button id="buy-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
-                                Buy
-                            </button>
-                            <button id="sell-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
-                                Sell
-                            </button>
-                        </div>
-                    </div>
-                </div>
+
+{% block title %}Portfolio Simulator{% endblock %}
+
+{% block extra_head %}
+<!-- Include Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Include simulator specific CSS -->
+<link rel="stylesheet" href="{% static 'portfolio/css/simulator.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Portfolio Simulator Content -->
+<div class="projects-section-header">
+    <p>Portfolio Simulator</p>
+</div>
+
+<div class="project-boxes jsGridView">
+    <!-- Stock Chart Section -->
+    <div class="project-box-wrapper">
+        <div class="project-box">
+            <div class="project-box-header">
+                <span>Stock Chart</span>
             </div>
-            
-            <!-- Stock Chart Section -->
-            <div class="lg:col-span-2">
-                <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Stock Chart</h2>
-                    <div id="candlestick-container" style="height: 400px;"></div>
-                </div>
-                
-                <!-- Portfolio Table -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Your Portfolio</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead>
-                                <tr>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Buy Price</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Price</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit/Loss</th>
-                                </tr>
-                            </thead>
-                            <tbody id="portfolio-table-body" class="bg-white divide-y divide-gray-200">
-                                {% for stock in portfolio_stocks %}
-                                <tr data-symbol="{{ stock.stock.symbol }}" class="portfolio-stock-row cursor-pointer hover:bg-gray-100">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">{{ stock.stock.symbol }}</div>
-                                        <div class="text-sm text-gray-500">{{ stock.stock.name }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ stock.quantity }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{{ stock.avg_buy_price }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 current-price">₹{{ stock.stock.current_price }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm profit-loss">
-                                        {% with profit_loss=stock.profit_loss %}
-                                        <span class="{% if profit_loss >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                                            ₹{{ profit_loss }}
-                                        </span>
-                                        {% endwith %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No stocks in portfolio</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Transaction History -->
-                <div class="bg-white rounded-lg shadow-md p-6 mt-8">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4" id="transaction-history-title">Transaction History</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead>
-                                <tr>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transaction-history-body" class="bg-white divide-y divide-gray-200">
-                                <!-- Transaction history will be populated here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div style="height: 300px;">
+                <canvas id="stockChart"></canvas>
             </div>
         </div>
     </div>
     
-    <script src="{% static 'portfolio/js/simulator.js' %}"></script>
-</body>
-</html>
+    <!-- Stock Search Section -->
+    <div class="project-box-wrapper">
+        <div class="project-box">
+            <div class="project-box-header">
+                <span>Search Stocks</span>
+            </div>
+            <div class="search-box">
+                <input type="text" id="stock-search" placeholder="Search for stocks (e.g., RELIANCE, TCS)...">
+                <div id="stock-suggestions" class="stock-suggestions"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Portfolio Section -->
+    <div class="project-box-wrapper">
+        <div class="project-box">
+            <div class="project-box-header">
+                <span>Your Portfolio</span>
+            </div>
+            <div id="portfolio-container">
+                <table class="portfolio-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Quantity</th>
+                            <th>Buy Price</th>
+                            <th>Current Price</th>
+                            <th>P/L</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolio-list">
+                        <!-- Portfolio items will be added here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transaction History Section -->
+    <div class="project-box-wrapper">
+        <div class="project-box">
+            <div class="project-box-header">
+                <span>Transaction History</span>
+            </div>
+            <div id="history-container">
+                <table class="history-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Stock</th>
+                            <th>Type</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transaction-history">
+                        <!-- Transaction history will be added here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Initialize chart with Chart.js
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    
+    // Sample dates for the chart
+    const dates = [];
+    for (let i = 30; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        dates.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    }
+    
+    // Sample data for the chart
+    const stockData = generateRandomPrices(31, 100);
+    
+    // Create the chart
+    const stockChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Stock Price',
+                data: stockData,
+                borderColor: '#3e95cd',
+                backgroundColor: 'rgba(62, 149, 205, 0.1)',
+                borderWidth: 2,
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+    
+    // Function to generate random price data
+    function generateRandomPrices(count, basePrice) {
+        const prices = [];
+        let price = basePrice;
+        
+        for (let i = 0; i < count; i++) {
+            const change = (Math.random() - 0.5) * 5;
+            price += change;
+            prices.push(price);
+        }
+        
+        return prices;
+    }
+    
+    // Stock search functionality
+    const stockSearch = document.getElementById('stock-search');
+    const stockSuggestions = document.getElementById('stock-suggestions');
+    
+    // Sample stocks for demonstration
+    const stocks = [
+        { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.' },
+        { symbol: 'TCS', name: 'Tata Consultancy Services Ltd.' },
+        { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.' },
+        { symbol: 'INFY', name: 'Infosys Ltd.' },
+        { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.' },
+    ];
+    
+    stockSearch.addEventListener('input', () => {
+        const searchTerm = stockSearch.value.toUpperCase();
+        stockSuggestions.innerHTML = '';
+        
+        if (searchTerm.length < 1) return;
+        
+        const filteredStocks = stocks.filter(stock => 
+            stock.symbol.includes(searchTerm) || stock.name.toUpperCase().includes(searchTerm)
+        );
+        
+        filteredStocks.forEach(stock => {
+            const suggestion = document.createElement('div');
+            suggestion.className = 'stock-suggestion';
+            suggestion.innerHTML = `<strong>${stock.symbol}</strong> - ${stock.name}`;
+            suggestion.addEventListener('click', () => {
+                stockSearch.value = stock.symbol;
+                stockSuggestions.innerHTML = '';
+                // Load stock data
+                loadStockData(stock.symbol);
+            });
+            stockSuggestions.appendChild(suggestion);
+        });
+    });
+    
+    function loadStockData(symbol) {
+        // In a real app, this would fetch data from an API
+        console.log(`Loading data for ${symbol}`);
+        
+        // Update chart with new random data
+        const newData = generateRandomPrices(31, 100);
+        stockChart.data.datasets[0].data = newData;
+        stockChart.data.datasets[0].label = symbol;
+        stockChart.update();
+        
+        // Add buy button for the searched stock
+        const buyButton = document.createElement('button');
+        buyButton.className = 'buy-more-btn';
+        buyButton.textContent = 'Buy ' + symbol;
+        buyButton.style.marginTop = '10px';
+        buyButton.style.padding = '8px 16px';
+        buyButton.addEventListener('click', () => {
+            // Add to portfolio
+            const currentPrice = newData[newData.length - 1];
+            addToPortfolio(symbol, 1, currentPrice);
+            // Add to transaction history
+            addToHistory(symbol, 'BUY', 1, currentPrice);
+        });
+        
+        // Clear previous buttons and add the new one
+        const searchBox = document.querySelector('.search-box');
+        const existingButton = searchBox.querySelector('button');
+        if (existingButton) {
+            searchBox.removeChild(existingButton);
+        }
+        searchBox.appendChild(buyButton);
+    }
+    
+    // Initialize with sample portfolio data
+    const portfolioList = document.getElementById('portfolio-list');
+    const samplePortfolio = [
+        { symbol: 'RELIANCE', quantity: 10, buyPrice: 2500, currentPrice: 2650 },
+        { symbol: 'TCS', quantity: 5, buyPrice: 3200, currentPrice: 3150 },
+    ];
+    
+    function updatePortfolio() {
+        portfolioList.innerHTML = '';
+        
+        samplePortfolio.forEach(item => {
+            const pl = (item.currentPrice - item.buyPrice) * item.quantity;
+            const plClass = pl >= 0 ? 'profit' : 'loss';
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.symbol}</td>
+                <td>${item.quantity}</td>
+                <td>₹${item.buyPrice.toFixed(2)}</td>
+                <td>₹${item.currentPrice.toFixed(2)}</td>
+                <td class="${plClass}">₹${pl.toFixed(2)}</td>
+                <td>
+                    <button class="buy-more-btn" data-symbol="${item.symbol}">Buy</button>
+                    <button class="sell-btn" data-symbol="${item.symbol}">Sell</button>
+                </td>
+            `;
+            portfolioList.appendChild(row);
+        });
+        
+        // Add event listeners to buy and sell buttons
+        document.querySelectorAll('.buy-more-btn[data-symbol]').forEach(button => {
+            button.addEventListener('click', () => {
+                const symbol = button.getAttribute('data-symbol');
+                const stock = samplePortfolio.find(item => item.symbol === symbol);
+                if (stock) {
+                    addToPortfolio(symbol, 1, stock.currentPrice);
+                    addToHistory(symbol, 'BUY', 1, stock.currentPrice);
+                }
+            });
+        });
+        
+        document.querySelectorAll('.sell-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const symbol = button.getAttribute('data-symbol');
+                const stock = samplePortfolio.find(item => item.symbol === symbol);
+                if (stock && stock.quantity > 0) {
+                    sellFromPortfolio(symbol, 1);
+                    addToHistory(symbol, 'SELL', 1, stock.currentPrice);
+                }
+            });
+        });
+    }
+    
+    function addToPortfolio(symbol, quantity, price) {
+        const existingStock = samplePortfolio.find(item => item.symbol === symbol);
+        
+        if (existingStock) {
+            // Update existing stock
+            const newQuantity = existingStock.quantity + quantity;
+            const newBuyPrice = ((existingStock.buyPrice * existingStock.quantity) + (price * quantity)) / newQuantity;
+            existingStock.quantity = newQuantity;
+            existingStock.buyPrice = newBuyPrice;
+            existingStock.currentPrice = price;
+        } else {
+            // Add new stock
+            samplePortfolio.push({
+                symbol,
+                quantity,
+                buyPrice: price,
+                currentPrice: price
+            });
+        }
+        
+        updatePortfolio();
+    }
+    
+    function sellFromPortfolio(symbol, quantity) {
+        const stockIndex = samplePortfolio.findIndex(item => item.symbol === symbol);
+        
+        if (stockIndex !== -1) {
+            const stock = samplePortfolio[stockIndex];
+            
+            if (stock.quantity <= quantity) {
+                // Remove stock completely
+                samplePortfolio.splice(stockIndex, 1);
+            } else {
+                // Reduce quantity
+                stock.quantity -= quantity;
+            }
+            
+            updatePortfolio();
+        }
+    }
+    
+    // Initialize with sample transaction history
+    const transactionHistory = document.getElementById('transaction-history');
+    const sampleHistory = [
+        { date: '2023-05-15', symbol: 'RELIANCE', type: 'BUY', quantity: 10, price: 2500, total: 25000 },
+        { date: '2023-05-20', symbol: 'TCS', type: 'BUY', quantity: 5, price: 3200, total: 16000 },
+    ];
+    
+    function updateHistory() {
+        transactionHistory.innerHTML = '';
+        
+        sampleHistory.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.symbol}</td>
+                <td>${item.type}</td>
+                <td>${item.quantity}</td>
+                <td>₹${item.price.toFixed(2)}</td>
+                <td>₹${item.total.toFixed(2)}</td>
+            `;
+            transactionHistory.appendChild(row);
+        });
+    }
+    
+    function addToHistory(symbol, type, quantity, price) {
+        const today = new Date();
+        const date = today.toISOString().split('T')[0];
+        const total = price * quantity;
+        
+        sampleHistory.push({
+            date,
+            symbol,
+            type,
+            quantity,
+            price,
+            total
+        });
+        
+        updateHistory();
+    }
+    
+    // Initialize the portfolio and history
+    updatePortfolio();
+    updateHistory();
+    
+    function updateHistory() {
+        transactionHistory.innerHTML = '';
+        
+        sampleHistory.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.symbol}</td>
+                <td>${item.type}</td>
+                <td>${item.quantity}</td>
+                <td>₹${item.price.toFixed(2)}</td>
+                <td>₹${item.total.toFixed(2)}</td>
+            `;
+            transactionHistory.appendChild(row);
+        });
+    }
+    
+    // Initialize the portfolio and history
+    updatePortfolio();
+    updateHistory();
+</script>
+{% endblock %}
